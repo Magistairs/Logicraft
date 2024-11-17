@@ -59,10 +59,10 @@ public:
 					for (int j = 0; j < s_numComponentsToAddByThread; j++)
 					{
 						GameComponentPtr pCpnt = GameObjectManager::Get().CreateComponent(cpntType);
-						/*					if (GameObjectPtr pObject = GetRandomObject())
-						          {
-						            pObject->AddComponent(pCpnt);
-						          }*/
+						if (GameObjectPtr pObject = GetRandomObject(false))
+						{
+							pObject->AddComponent(pCpnt);
+						}
 						std::lock_guard<std::shared_mutex> lock(m_componentsMutex);
 						m_components.push_back(pCpnt);
 						++m_componentsAdded;
@@ -102,7 +102,7 @@ public:
 				TaskManager::Get().AddTask([this]() {
 					while ((m_objectsAdded < s_numObjectsToAdd || m_objectsAdded > m_objectsRemoved) && !m_stop)
 					{
-						if (GameObjectPtr pObject = GetRandomObject())
+						if (GameObjectPtr pObject = GetRandomObject(true))
 						{
 							GameObjectManager::Get().RemoveObject(pObject->GetGUID());
 						}
@@ -117,15 +117,18 @@ public:
 		Logger::Get().Log(Logger::eInfo, "End ObjectsManager test");
 	}
 
-	GameObjectPtr GetRandomObject()
+	GameObjectPtr GetRandomObject(bool remove)
 	{
 		std::lock_guard<std::shared_mutex> lock(m_objectsMutex);
 		if (!m_objects.empty())
 		{
 			int           objectToRemove = std::rand() % m_objects.size();
 			GameObjectPtr pObject        = m_objects[objectToRemove];
-			m_objects.erase(m_objects.begin() + objectToRemove);
-			++m_objectsRemoved;
+			if (remove)
+			{
+				m_objects.erase(m_objects.begin() + objectToRemove);
+				++m_objectsRemoved;
+			}
 			return pObject;
 		}
 		return GameObjectPtr();
